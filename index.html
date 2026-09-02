@@ -526,18 +526,18 @@
         </div>
       </div>
 
-      <p class="max-w-xl mx-auto text-lg font-medium opacity-80 px-6">
+      <p class="max-w-xl mx-auto text-lg font-medium opacity-80 px-6 !mt-0">
         Teljeskörű üzleti napelemes, energiatároló és épületgépészeti tervezés és engedélyezés.
       </p>
 
-      <div class="flex flex-col items-center pt-10 animate-bounce">
-         <div class="w-10 h-16 border-4 border-black rounded-full flex justify-center items-start pt-2">
-            <div class="w-2 h-4 bg-black rounded-full"></div>
-         </div>
-         <span class="text-[10px] font-black uppercase tracking-widest mt-2">Scroll</span>
-      </div>
     </div>
 
+    <div id="hero-scroll-indicator" class="fixed inset-x-0 bottom-6 md:bottom-8 z-30 flex flex-col items-center animate-bounce transition-opacity duration-300 pointer-events-none">
+       <div class="w-10 h-16 border-4 border-black rounded-full flex justify-center items-start pt-2">
+          <div class="w-2 h-4 bg-black rounded-full"></div>
+       </div>
+       <span class="text-[10px] font-black uppercase tracking-widest mt-2">Scroll</span>
+    </div>
   </header>
 
   <!-- Section 1: About / Story -->
@@ -1247,6 +1247,18 @@
       }, { threshold: 0.5 });
 
       counters.forEach((el) => observer.observe(el));
+    })();
+
+    (() => {
+      const indicator = document.getElementById('hero-scroll-indicator');
+      const header = document.querySelector('header');
+      if (!indicator || !header) return;
+      const toggle = () => {
+        const headerBottom = header.getBoundingClientRect().bottom;
+        indicator.style.opacity = headerBottom < window.innerHeight * 0.9 ? '0' : '1';
+      };
+      toggle();
+      window.addEventListener('scroll', toggle, { passive: true });
     })();
 
   </script>
