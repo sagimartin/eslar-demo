@@ -516,23 +516,25 @@
       </h1>
 
       <div class="flex flex-col items-center -mt-6 md:-mt-16 lg:-mt-24">
-        <div class="relative z-10 w-screen flex flex-col items-center">
+        <div class="relative z-10 w-screen h-[62vh] sm:h-[66vh] md:h-[70vh] lg:h-[74vh]">
           <iframe
             src="bess-3d-model.html"
             title="BESS energiatároló 3D modell"
-            class="w-full h-[62vh] sm:h-[66vh] md:h-[70vh] lg:h-[74vh] border-0"
+            class="w-full h-full border-0"
             loading="lazy"
           ></iframe>
 
-          <p class="max-w-xl mx-auto text-lg font-medium opacity-80 px-6 mt-10 md:mt-14">
-            Teljeskörű üzleti napelemes, energiatároló és épületgépészeti tervezés és engedélyezés.
-          </p>
+          <div class="absolute inset-x-0 bottom-24 md:bottom-28 flex flex-col items-center gap-3 px-6 pointer-events-none">
+            <p class="max-w-xl mx-auto text-lg font-medium opacity-80 pointer-events-auto">
+              Teljeskörű üzleti napelemes, energiatároló és épületgépészeti tervezés és engedélyezés.
+            </p>
 
-          <div class="flex flex-col items-center pt-10 animate-bounce">
-             <div class="w-10 h-16 border-4 border-black rounded-full flex justify-center items-start pt-2">
-                <div class="w-2 h-4 bg-black rounded-full"></div>
-             </div>
-             <span class="text-[10px] font-black uppercase tracking-widest mt-2">Scroll</span>
+            <div class="flex flex-col items-center animate-bounce pointer-events-auto">
+               <div class="w-10 h-16 border-4 border-black rounded-full flex justify-center items-start pt-2">
+                  <div class="w-2 h-4 bg-black rounded-full"></div>
+               </div>
+               <span class="text-[10px] font-black uppercase tracking-widest mt-2">Scroll</span>
+            </div>
           </div>
         </div>
       </div>
