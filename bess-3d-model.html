@@ -15,13 +15,16 @@
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   }
   .bess-page {
+    display: flex;
+    flex-direction: column;
     width: 100%;
     height: 100%;
   }
   #bess-viewer {
     position: relative;
     width: 100%;
-    height: 100%;
+    flex: 1 1 auto;
+    min-height: 0;
   }
   #bess-canvas-holder {
     position: absolute;
@@ -35,14 +38,11 @@
     cursor: pointer;
   }
   .bess-ui {
-    position: absolute;
-    left: 14px;
-    top: 50%;
-    transform: translateY(-50%);
+    flex: 0 0 auto;
     display: flex;
-    flex-direction: column;
+    justify-content: center;
     gap: 12px;
-    z-index: 5;
+    padding: 14px 10px 18px;
   }
   .bess-btn {
     appearance: none;
@@ -92,21 +92,21 @@
   <div id="bess-viewer">
     <div id="bess-canvas-holder"></div>
     <div class="bess-loading" id="bess-loading">Modell betöltése…</div>
+  </div>
 
-    <div class="bess-ui">
-      <button class="bess-btn active" id="bess-toggle-explode" aria-label="Szétszedett / összeszerelt nézet" title="Szétszedett / összeszerelt nézet">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 5.83L15.17 9l1.41-1.41L12 3 7.41 7.59 8.83 9 12 5.83zm0 12.34L8.83 15l-1.41 1.41L12 21l4.59-4.59L15.17 15 12 18.17z"/></svg>
-      </button>
-      <button class="bess-btn active" id="bess-toggle-rotate" aria-label="Automata forgás" title="Automata forgás">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0020 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 004 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
-      </button>
-      <button class="bess-btn" id="bess-toggle-glow" aria-label="Fényív" title="Fényív">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
-      </button>
-      <button class="bess-btn active" id="bess-toggle-shadow" aria-label="Árnyék" title="Árnyék">
-        <svg viewBox="0 0 24 24" fill="currentColor"><ellipse cx="12" cy="12" rx="9" ry="4"/></svg>
-      </button>
-    </div>
+  <div class="bess-ui">
+    <button class="bess-btn active" id="bess-toggle-explode" aria-label="Szétszedett / összeszerelt nézet" title="Szétszedett / összeszerelt nézet">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 5.83L15.17 9l1.41-1.41L12 3 7.41 7.59 8.83 9 12 5.83zm0 12.34L8.83 15l-1.41 1.41L12 21l4.59-4.59L15.17 15 12 18.17z"/></svg>
+    </button>
+    <button class="bess-btn active" id="bess-toggle-rotate" aria-label="Automata forgás" title="Automata forgás">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0020 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 004 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
+    </button>
+    <button class="bess-btn" id="bess-toggle-glow" aria-label="Fényív" title="Fényív">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
+    </button>
+    <button class="bess-btn active" id="bess-toggle-shadow" aria-label="Árnyék" title="Árnyék">
+      <svg viewBox="0 0 24 24" fill="currentColor"><ellipse cx="12" cy="12" rx="9" ry="4"/></svg>
+    </button>
   </div>
 </div>
 
