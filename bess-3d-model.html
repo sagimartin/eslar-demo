@@ -135,17 +135,35 @@ const loadingEl = document.getElementById("bess-loading");
 
 const scene = new THREE.Scene();
 
+const BASE_FOV = 38; // tuned for a square-ish view; widened on narrow/portrait boxes below
+
 const camera = new THREE.PerspectiveCamera(
-  38,
+  BASE_FOV,
   holder.clientWidth / holder.clientHeight,
   0.1,
   100
 );
 camera.position.set(6.2, 3.4, 7.4);
 
+// On narrow (portrait) boxes the horizontal FOV shrinks faster than the
+// vertical FOV, which lets the exploded model spill past the left/right
+// edges while auto-rotating. Widen the vertical FOV to keep the horizontal
+// FOV at least as wide as it is on a square box.
+function applyResponsiveFov(aspect) {
+  if (aspect >= 1) {
+    camera.fov = BASE_FOV;
+    return;
+  }
+  const baseHalfRad = THREE.MathUtils.degToRad(BASE_FOV) / 2; // half V-FOV at aspect=1 == half H-FOV
+  const newHalfRad = Math.atan(Math.tan(baseHalfRad) / aspect);
+  camera.fov = THREE.MathUtils.radToDeg(newHalfRad) * 2;
+}
+
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(holder.clientWidth, holder.clientHeight);
+applyResponsiveFov(camera.aspect);
+camera.updateProjectionMatrix();
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -662,6 +680,7 @@ function onResize() {
   const w = holder.clientWidth;
   const h = holder.clientHeight;
   camera.aspect = w / h;
+  applyResponsiveFov(camera.aspect);
   camera.updateProjectionMatrix();
   renderer.setSize(w, h);
 }
