@@ -26,6 +26,19 @@
   </script>
 
   <style>
+    * {
+      cursor: default !important;
+      -webkit-user-select: none !important;
+      -moz-user-select: none !important;
+      user-select: none !important;
+    }
+    a, button, [onclick], select, input[type="checkbox"], input[type="radio"], label {
+      cursor: pointer !important;
+    }
+    input, textarea {
+      cursor: pointer !important;
+    }
+
     body {
       background-color: #D3ECE6;
       color: #000;
@@ -1184,6 +1197,11 @@
     onScrollNav();
     window.addEventListener('scroll', onScrollNav, { passive: true });
 
+
+    // Disable copy/cut/right-click across the page.
+    document.addEventListener('copy', (e) => e.preventDefault());
+    document.addEventListener('cut', (e) => e.preventDefault());
+    document.addEventListener('contextmenu', (e) => e.preventDefault());
 
     function toggleMobileMenu() {
       const menu = document.getElementById('mobile-menu');
