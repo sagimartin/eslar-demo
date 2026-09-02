@@ -159,10 +159,18 @@ function applyResponsiveFov(aspect) {
   camera.fov = THREE.MathUtils.radToDeg(newHalfRad) * 2;
 }
 
+// Shifts the visible frame upward within the camera's frustum so the model
+// sits higher in a tall box, without moving the model or camera itself.
+function applyViewOffset(w, h) {
+  const shift = h * 0.16;
+  camera.setViewOffset(w, h + shift, 0, shift, w, h);
+}
+
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(holder.clientWidth, holder.clientHeight);
 applyResponsiveFov(camera.aspect);
+applyViewOffset(holder.clientWidth, holder.clientHeight);
 camera.updateProjectionMatrix();
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -681,6 +689,7 @@ function onResize() {
   const h = holder.clientHeight;
   camera.aspect = w / h;
   applyResponsiveFov(camera.aspect);
+  applyViewOffset(w, h);
   camera.updateProjectionMatrix();
   renderer.setSize(w, h);
 }
