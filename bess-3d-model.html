@@ -37,7 +37,7 @@
   .bess-ui {
     position: absolute;
     left: 50%;
-    bottom: 18px;
+    bottom: 260px;
     transform: translateX(-50%);
     display: flex;
     justify-content: center;
@@ -143,7 +143,7 @@ const camera = new THREE.PerspectiveCamera(
   0.1,
   100
 );
-camera.position.set(7.4, 4.1, 8.9);
+camera.position.set(9.3, 5.1, 11.1);
 
 // On narrow (portrait) boxes the horizontal FOV shrinks faster than the
 // vertical FOV, which lets the exploded model spill past the left/right
@@ -175,8 +175,8 @@ const controls = new OrbitControls(camera, renderer.domElement);
 controls.target.set(0, 1.05, 0);
 controls.enableDamping = true;
 controls.dampingFactor = 0.08;
-controls.minDistance = 7;
-controls.maxDistance = 14;
+controls.minDistance = 8;
+controls.maxDistance = 18;
 controls.maxPolarAngle = Math.PI * 0.6;
 controls.minPolarAngle = Math.PI * 0.28;
 controls.enablePan = false;
