@@ -104,7 +104,7 @@
     <button class="bess-btn" id="bess-toggle-glow" aria-label="Fényív" title="Fényív">
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
     </button>
-    <button class="bess-btn active" id="bess-toggle-shadow" aria-label="Árnyék" title="Árnyék">
+    <button class="bess-btn" id="bess-toggle-shadow" aria-label="Árnyék" title="Árnyék">
       <svg viewBox="0 0 24 24" fill="currentColor"><ellipse cx="12" cy="12" rx="9" ry="4"/></svg>
     </button>
   </div>
@@ -202,6 +202,7 @@ const shadowCatcher = new THREE.Mesh(
 shadowCatcher.rotation.x = -Math.PI / 2;
 shadowCatcher.position.y = -1.34;
 shadowCatcher.receiveShadow = true;
+shadowCatcher.visible = false;
 scene.add(shadowCatcher);
 
 /* ---------------- Materials ---------------- */
@@ -607,7 +608,7 @@ scene.add(helixMesh);
 let explodeTarget = 1; // 1 = exploded, 0 = assembled
 let explodeCurrent = 1;
 let glowVisible = true;
-let shadowVisible = true;
+let shadowVisible = false;
 
 const explodeBtn = document.getElementById("bess-toggle-explode");
 const rotateBtn = document.getElementById("bess-toggle-rotate");
