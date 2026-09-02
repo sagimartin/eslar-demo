@@ -162,7 +162,7 @@ function applyResponsiveFov(aspect) {
 // Shifts the visible frame upward within the camera's frustum so the model
 // sits higher in a tall box, without moving the model or camera itself.
 function applyViewOffset(w, h) {
-  const shift = h * 0.16;
+  const shift = h * 0.3;
   camera.setViewOffset(w, h + shift, 0, shift, w, h);
 }
 
