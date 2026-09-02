@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BESS 3D modell</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .bess-page {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+  }
+  #bess-viewer {
+    position: relative;
+    width: 100%;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  #bess-canvas-holder {
+    position: absolute;
+    inset: 0;
+  }
+  #bess-canvas-holder canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    touch-action: none;
+    cursor: pointer;
+  }
+  .bess-ui {
+    flex: 0 0 auto;
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    padding: 14px 10px 18px;
+  }
+  .bess-btn {
+    appearance: none;
+    border: 2px solid #16110a;
+    background: #16110a;
+    backdrop-filter: blur(6px);
+    color: #ffffff;
+    width: 46px;
+    height: 46px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: color 0.2s ease, background 0.2s ease, transform 0.15s ease;
+  }
+  .bess-btn svg {
+    width: 20px;
+    height: 20px;
+  }
+  .bess-btn:hover {
+    background: #2a221a;
+  }
+  .bess-btn:active {
+    transform: scale(0.94);
+  }
+  .bess-btn.active {
+    color: #ff8a1e;
+  }
+  .bess-loading {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(240, 225, 200, 0.6);
+    font-size: 13px;
+    letter-spacing: 0.05em;
+    z-index: 4;
+    transition: opacity 0.4s ease;
+  }
+</style>
+</head>
+<body>
+
+<div class="bess-page">
+  <div id="bess-viewer">
+    <div id="bess-canvas-holder"></div>
+    <div class="bess-loading" id="bess-loading">Modell betöltése…</div>
+  </div>
+
+  <div class="bess-ui">
+    <button class="bess-btn active" id="bess-toggle-explode" aria-label="Szétszedett / összeszerelt nézet" title="Szétszedett / összeszerelt nézet">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 5.83L15.17 9l1.41-1.41L12 3 7.41 7.59 8.83 9 12 5.83zm0 12.34L8.83 15l-1.41 1.41L12 21l4.59-4.59L15.17 15 12 18.17z"/></svg>
+    </button>
+    <button class="bess-btn active" id="bess-toggle-rotate" aria-label="Automata forgás" title="Automata forgás">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0020 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 004 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
+    </button>
+    <button class="bess-btn" id="bess-toggle-glow" aria-label="Fényív" title="Fényív">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
+    </button>
+    <button class="bess-btn active" id="bess-toggle-shadow" aria-label="Árnyék" title="Árnyék">
+      <svg viewBox="0 0 24 24" fill="currentColor"><ellipse cx="12" cy="12" rx="9" ry="4"/></svg>
+    </button>
+  </div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+/* -----------------------------------------------------------
+   BESS 3D VIEWER
+   Stylized, fully orbitable 3D model of a battery energy
+   storage cabinet, inspired by an exploded-view product shot.
+   Drop this whole file into any page — it is self-contained.
+----------------------------------------------------------- */
+
+const holder = document.getElementById("bess-canvas-holder");
+const loadingEl = document.getElementById("bess-loading");
+
+const scene = new THREE.Scene();
+
+const camera = new THREE.PerspectiveCamera(
+  38,
+  holder.clientWidth / holder.clientHeight,
+  0.1,
+  100
+);
+camera.position.set(6.2, 3.4, 7.4);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(holder.clientWidth, holder.clientHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+holder.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 1.05, 0);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.minDistance = 6;
+controls.maxDistance = 12;
+controls.maxPolarAngle = Math.PI * 0.6;
+controls.minPolarAngle = Math.PI * 0.28;
+controls.enablePan = false;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 1.1;
+controls.enableZoom = false; // orbit only, no zoom on any device
+
+/* ---------------- Lighting ---------------- */
+scene.add(new THREE.HemisphereLight(0x9fb8ff, 0x1a1408, 0.55));
+
+const keyLight = new THREE.DirectionalLight(0xfff2df, 1.6);
+keyLight.position.set(5, 8, 4);
+keyLight.castShadow = true;
+keyLight.shadow.mapSize.set(2048, 2048);
+keyLight.shadow.camera.near = 1;
+keyLight.shadow.camera.far = 20;
+keyLight.shadow.camera.left = -6;
+keyLight.shadow.camera.right = 6;
+keyLight.shadow.camera.top = 6;
+keyLight.shadow.camera.bottom = -6;
+keyLight.shadow.bias = -0.001;
+scene.add(keyLight);
+
+const rimLight = new THREE.DirectionalLight(0x8fb3ff, 0.5);
+rimLight.position.set(-6, 3, -5);
+scene.add(rimLight);
+
+const glowLight1 = new THREE.PointLight(0xffa334, 3.5, 8, 2);
+glowLight1.position.set(1.6, 1.6, 1.6);
+scene.add(glowLight1);
+
+const glowLight2 = new THREE.PointLight(0xffa334, 2.5, 7, 2);
+glowLight2.position.set(-1.6, 0.6, -1.2);
+scene.add(glowLight2);
+
+/* ---------------- Soft shadow (no visible ground) ---------------- */
+const shadowCatcher = new THREE.Mesh(
+  new THREE.PlaneGeometry(400, 400),
+  new THREE.ShadowMaterial({ opacity: 0.35 })
+);
+shadowCatcher.rotation.x = -Math.PI / 2;
+shadowCatcher.position.y = -1.34;
+shadowCatcher.receiveShadow = true;
+scene.add(shadowCatcher);
+
+/* ---------------- Materials ---------------- */
+const matFrame = new THREE.MeshStandardMaterial({ color: 0xb7bcc4, metalness: 0.75, roughness: 0.35 });
+const matFrameDark = new THREE.MeshStandardMaterial({ color: 0x8b9099, metalness: 0.7, roughness: 0.4 });
+const matCabinetInterior = new THREE.MeshStandardMaterial({ color: 0x232529, metalness: 0.4, roughness: 0.6 });
+const matModuleBody = new THREE.MeshStandardMaterial({ color: 0x1b1c1f, metalness: 0.35, roughness: 0.55 });
+const matModuleFace = new THREE.MeshStandardMaterial({ color: 0x2a2c30, metalness: 0.3, roughness: 0.5 });
+const matDoor = new THREE.MeshStandardMaterial({ color: 0xece8e0, metalness: 0.15, roughness: 0.55 });
+const matController = new THREE.MeshStandardMaterial({ color: 0x141517, metalness: 0.3, roughness: 0.6 });
+const matOrange = new THREE.MeshStandardMaterial({
+  color: 0xff8a1e,
+  metalness: 0.4,
+  roughness: 0.4,
+  emissive: 0xff6a10,
+  emissiveIntensity: 0.25,
+});
+const matBlackCable = new THREE.MeshStandardMaterial({ color: 0x101010, metalness: 0.2, roughness: 0.7 });
+const matGlowTube = new THREE.MeshBasicMaterial({ color: 0xffb238 });
+
+/* ---------------- Canvas texture helpers ---------------- */
+function makeTexture(w, h, drawFn) {
+  const c = document.createElement("canvas");
+  c.width = w;
+  c.height = h;
+  const ctx = c.getContext("2d");
+  drawFn(ctx, w, h);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+const grilleTexture = makeTexture(256, 256, (ctx, w, h) => {
+  ctx.fillStyle = "#d7dade";
+  ctx.fillRect(0, 0, w, h);
+  ctx.strokeStyle = "#8f949b";
+  ctx.lineWidth = 4;
+  for (let y = 12; y < h; y += 16) {
+    ctx.beginPath();
+    ctx.moveTo(6, y);
+    ctx.lineTo(w - 6, y);
+    ctx.stroke();
+  }
+});
+
+const fanTexture = makeTexture(256, 256, (ctx, w, h) => {
+  ctx.clearRect(0, 0, w, h);
+  const cx = w / 2, cy = h / 2, r = w / 2 - 6;
+  ctx.fillStyle = "#3a3d42";
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#1c1d20";
+  for (let i = 0; i < 7; i++) {
+    const a0 = (i / 7) * Math.PI * 2;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(a0);
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.quadraticCurveTo(r * 0.55, -r * 0.12, r * 0.92, r * 0.05);
+    ctx.quadraticCurveTo(r * 0.55, r * 0.28, 0, 0);
+    ctx.fill();
+    ctx.restore();
+  }
+  ctx.fillStyle = "#0d0d0e";
+  ctx.beginPath();
+  ctx.arc(cx, cy, r * 0.18, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "#55585e";
+  ctx.lineWidth = 6;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r - 3, 0, Math.PI * 2);
+  ctx.stroke();
+});
+
+const doorLogoTexture = makeTexture(768, 512, (ctx, w, h) => {
+  ctx.clearRect(0, 0, w, h);
+  // lightning bolt
+  ctx.save();
+  ctx.translate(w * 0.5, h * 0.34);
+  ctx.fillStyle = "#f0a02a";
+  ctx.beginPath();
+  ctx.moveTo(6, -70);
+  ctx.lineTo(-34, 10);
+  ctx.lineTo(-4, 10);
+  ctx.lineTo(-14, 74);
+  ctx.lineTo(38, -6);
+  ctx.lineTo(6, -6);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+
+  ctx.fillStyle = "#2c2d30";
+  ctx.textAlign = "center";
+  ctx.font = "700 74px Arial";
+  ctx.fillText("BESS", w * 0.5, h * 0.58);
+
+  ctx.font = "500 22px Arial";
+  ctx.fillStyle = "#55575c";
+  ctx.fillText("BATTERY ENERGY", w * 0.5, h * 0.7);
+  ctx.fillText("STORAGE SYSTEM", w * 0.5, h * 0.76);
+});
+
+const smallScreenTexture = makeTexture(128, 96, (ctx, w, h) => {
+  ctx.fillStyle = "#0c0d0f";
+  ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = "#ffb238";
+  ctx.font = "700 20px monospace";
+  ctx.fillText("BMS", 18, 34);
+  ctx.strokeStyle = "#ffb238";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(14, 44, w - 28, 8);
+  ctx.fillRect(14, 44, (w - 28) * 0.7, 8);
+});
+
+/* ---------------- Root group ---------------- */
+const bess = new THREE.Group();
+scene.add(bess);
+
+// Each part: mesh/group + assembled position + exploded position
+const explodableParts = [];
+
+function addPart(object, assembledPos, explodedPos, castShadow = true) {
+  object.position.copy(assembledPos);
+  object.userData.assembledPos = assembledPos.clone();
+  object.userData.explodedPos = explodedPos.clone();
+  if (castShadow) {
+    object.traverse((n) => {
+      if (n.isMesh) {
+        n.castShadow = true;
+        n.receiveShadow = true;
+      }
+    });
+  }
+  bess.add(object);
+  explodableParts.push(object);
+  return object;
+}
+
+/* ---- Main rack (frame + interior + battery modules) ---- */
+const rackGroup = new THREE.Group();
+
+const rackFrame = new THREE.Mesh(new THREE.BoxGeometry(1.7, 3.0, 1.35), matCabinetInterior);
+rackGroup.add(rackFrame);
+
+// corner posts
+const postGeo = new THREE.BoxGeometry(0.08, 3.05, 0.08);
+[[-0.79, -0.6], [0.79, -0.6], [-0.79, 0.6], [0.79, 0.6]].forEach(([x, z]) => {
+  const post = new THREE.Mesh(postGeo, matFrame);
+  post.position.set(x, 0, z);
+  rackGroup.add(post);
+});
+
+// 8 stacked battery modules on the front-right face
+const moduleCount = 8;
+const moduleHeight = 3.0 / moduleCount;
+for (let i = 0; i < moduleCount; i++) {
+  const modGroup = new THREE.Group();
+  const body = new THREE.Mesh(
+    new THREE.BoxGeometry(1.1, moduleHeight * 0.86, 0.16),
+    matModuleBody
+  );
+  modGroup.add(body);
+
+  const face = new THREE.Mesh(
+    new THREE.BoxGeometry(1.06, moduleHeight * 0.72, 0.02),
+    matModuleFace
+  );
+  face.position.z = 0.09;
+  modGroup.add(face);
+
+  const connector = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.045, 0.045, 0.14, 12),
+    matOrange
+  );
+  connector.rotation.x = Math.PI / 2;
+  connector.position.set(0.42, moduleHeight * 0.18, 0.12);
+  modGroup.add(connector);
+
+  const connector2 = connector.clone();
+  connector2.position.x = 0.3;
+  modGroup.add(connector2);
+
+  const led = new THREE.Mesh(new THREE.CircleGeometry(0.03, 12), matOrange);
+  led.position.set(-0.42, moduleHeight * 0.18, 0.1);
+  modGroup.add(led);
+
+  modGroup.position.set(0.05, 1.42 - i * moduleHeight - moduleHeight / 2, 0.6);
+  rackGroup.add(modGroup);
+}
+
+addPart(
+  rackGroup,
+  new THREE.Vector3(0, 1.5, 0),
+  new THREE.Vector3(0, 1.5, 0)
+);
+
+/* ---- Top vent cap ---- */
+const topCap = new THREE.Group();
+const topBox = new THREE.Mesh(new THREE.BoxGeometry(1.55, 0.14, 1.15), matFrame);
+topCap.add(topBox);
+const topGrille = new THREE.Mesh(
+  new THREE.PlaneGeometry(1.35, 0.9),
+  new THREE.MeshStandardMaterial({ map: grilleTexture, metalness: 0.2, roughness: 0.7 })
+);
+topGrille.rotation.x = -Math.PI / 2;
+topGrille.position.y = 0.075;
+topCap.add(topGrille);
+addPart(
+  topCap,
+  new THREE.Vector3(0, 3.12, 0),
+  new THREE.Vector3(0, 4.55, 0)
+);
+
+/* ---- Base plate ---- */
+const base = new THREE.Group();
+const baseBox = new THREE.Mesh(new THREE.BoxGeometry(1.65, 0.22, 1.3), matFrameDark);
+base.add(baseBox);
+for (let i = -1; i <= 1; i += 2) {
+  const slot = new THREE.Mesh(
+    new THREE.BoxGeometry(0.55, 0.1, 0.35),
+    matCabinetInterior
+  );
+  slot.position.set(i * 0.42, 0.12, 0);
+  base.add(slot);
+}
+addPart(
+  base,
+  new THREE.Vector3(0, -0.12, 0),
+  new THREE.Vector3(0, -1.55, 0)
+);
+
+/* ---- Left inner grille panel ---- */
+const innerPanel = new THREE.Group();
+const innerBox = new THREE.Mesh(new THREE.BoxGeometry(0.05, 2.9, 1.2), matFrame);
+innerPanel.add(innerBox);
+const innerGrille = new THREE.Mesh(
+  new THREE.PlaneGeometry(0.85, 0.9),
+  new THREE.MeshStandardMaterial({ map: grilleTexture, metalness: 0.2, roughness: 0.7 })
+);
+innerGrille.rotation.y = Math.PI / 2;
+innerGrille.position.set(0.026, -0.7, 0);
+innerPanel.add(innerGrille);
+addPart(
+  innerPanel,
+  new THREE.Vector3(-0.95, 1.5, 0),
+  new THREE.Vector3(-2.0, 1.5, 0.15)
+);
+
+/* ---- Left fan + vent panel ---- */
+const fanPanel = new THREE.Group();
+const fanPanelBox = new THREE.Mesh(new THREE.BoxGeometry(0.08, 2.7, 1.1), matFrame);
+fanPanel.add(fanPanelBox);
+
+[0.68, -0.05].forEach((y) => {
+  const fanMesh = new THREE.Mesh(
+    new THREE.CircleGeometry(0.34, 32),
+    new THREE.MeshStandardMaterial({ map: fanTexture, metalness: 0.3, roughness: 0.6 })
+  );
+  fanMesh.rotation.y = Math.PI / 2;
+  fanMesh.position.set(0.045, y, -0.2);
+  fanPanel.add(fanMesh);
+});
+
+const ventLower = new THREE.Mesh(
+  new THREE.PlaneGeometry(0.55, 0.55),
+  new THREE.MeshStandardMaterial({ map: grilleTexture, metalness: 0.2, roughness: 0.7 })
+);
+ventLower.rotation.y = Math.PI / 2;
+ventLower.position.set(0.045, -0.95, 0.15);
+fanPanel.add(ventLower);
+
+addPart(
+  fanPanel,
+  new THREE.Vector3(-1.05, 1.45, 0),
+  new THREE.Vector3(-3.3, 1.35, -0.1)
+);
+
+/* ---- Controller / converter box with cables ---- */
+const controllerGroup = new THREE.Group();
+const controllerBody = new THREE.Mesh(
+  new THREE.BoxGeometry(0.55, 0.85, 0.35),
+  matController
+);
+controllerGroup.add(controllerBody);
+
+const controllerScreen = new THREE.Mesh(
+  new THREE.PlaneGeometry(0.34, 0.24),
+  new THREE.MeshStandardMaterial({ map: smallScreenTexture })
+);
+controllerScreen.position.set(0, 0.18, 0.176);
+controllerGroup.add(controllerScreen);
+
+const ventStripe = new THREE.Mesh(
+  new THREE.PlaneGeometry(0.34, 0.16),
+  new THREE.MeshStandardMaterial({ map: grilleTexture })
+);
+ventStripe.position.set(0, -0.22, 0.176);
+controllerGroup.add(ventStripe);
+
+// cables
+const cableCurvePoints = [
+  new THREE.Vector3(0.15, -0.42, 0.15),
+  new THREE.Vector3(0.05, -0.62, 0.3),
+  new THREE.Vector3(-0.05, -0.82, 0.42),
+  new THREE.Vector3(0.05, -1.0, 0.55),
+];
+[0, 0.08, -0.08].forEach((offset, idx) => {
+  const pts = cableCurvePoints.map((p, i) =>
+    i === 0 ? p.clone().add(new THREE.Vector3(offset, 0, 0)) : p.clone().add(new THREE.Vector3(offset * (1 - i * 0.2), 0, 0))
+  );
+  const curve = new THREE.CatmullRomCurve3(pts);
+  const tubeMat = idx === 1 ? matOrange : matBlackCable;
+  const tube = new THREE.Mesh(new THREE.TubeGeometry(curve, 20, 0.028, 8, false), tubeMat);
+  controllerGroup.add(tube);
+});
+
+addPart(
+  controllerGroup,
+  new THREE.Vector3(-1.55, 1.85, 0.55),
+  new THREE.Vector3(-3.35, 2.55, 0.9)
+);
+
+/* ---- Right front door ---- */
+const doorGroup = new THREE.Group();
+const doorBody = new THREE.Mesh(new THREE.BoxGeometry(0.07, 2.85, 1.25), matDoor);
+doorGroup.add(doorBody);
+
+const doorLogo = new THREE.Mesh(
+  new THREE.PlaneGeometry(0.95, 0.68),
+  new THREE.MeshStandardMaterial({ map: doorLogoTexture, transparent: true, roughness: 0.5 })
+);
+doorLogo.rotation.y = -Math.PI / 2;
+doorLogo.position.set(0.037, 0.55, 0);
+doorGroup.add(doorLogo);
+
+const doorVent = new THREE.Mesh(
+  new THREE.PlaneGeometry(0.85, 0.65),
+  new THREE.MeshStandardMaterial({ map: grilleTexture })
+);
+doorVent.rotation.y = -Math.PI / 2;
+doorVent.position.set(0.037, -0.65, 0);
+doorGroup.add(doorVent);
+
+const handle = new THREE.Mesh(
+  new THREE.BoxGeometry(0.05, 0.32, 0.06),
+  matFrameDark
+);
+handle.position.set(0.05, 0.1, 0.55);
+doorGroup.add(handle);
+
+const hinge1 = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.16, 8), matFrameDark);
+hinge1.position.set(0.04, 1.2, -0.62);
+doorGroup.add(hinge1);
+const hinge2 = hinge1.clone();
+hinge2.position.y = 0.1;
+doorGroup.add(hinge2);
+const hinge3 = hinge1.clone();
+hinge3.position.y = -1.0;
+doorGroup.add(hinge3);
+
+addPart(
+  doorGroup,
+  new THREE.Vector3(1.05, 1.5, 0),
+  new THREE.Vector3(3.1, 1.5, -0.5)
+);
+
+/* ---- Outer right side panel ---- */
+const outerPanel = new THREE.Group();
+const outerBox = new THREE.Mesh(new THREE.BoxGeometry(0.05, 2.9, 1.2), matFrame);
+outerPanel.add(outerBox);
+addPart(
+  outerPanel,
+  new THREE.Vector3(0.98, 1.5, 0),
+  new THREE.Vector3(2.15, 1.15, -1.1)
+);
+
+/* ---------------- Glowing helix accent ---------------- */
+class HelixCurve extends THREE.Curve {
+  constructor(radius, height, turns) {
+    super();
+    this.radius = radius;
+    this.height = height;
+    this.turns = turns;
+  }
+  getPoint(t) {
+    const angle = this.turns * Math.PI * 2 * t;
+    const x = Math.cos(angle) * this.radius;
+    const z = Math.sin(angle) * this.radius;
+    const y = -this.height / 2 + t * this.height;
+    return new THREE.Vector3(x, y, z);
+  }
+}
+
+const helixCurve = new HelixCurve(2.0, 3.6, 1.35);
+const helixGeo = new THREE.TubeGeometry(helixCurve, 200, 0.03, 8, false);
+const helixMesh = new THREE.Mesh(helixGeo, matGlowTube);
+helixMesh.position.y = 1.5;
+scene.add(helixMesh);
+
+/* ---------------- State ---------------- */
+let explodeTarget = 1; // 1 = exploded, 0 = assembled
+let explodeCurrent = 1;
+let glowVisible = true;
+let shadowVisible = true;
+
+const explodeBtn = document.getElementById("bess-toggle-explode");
+const rotateBtn = document.getElementById("bess-toggle-rotate");
+const glowBtn = document.getElementById("bess-toggle-glow");
+const shadowBtn = document.getElementById("bess-toggle-shadow");
+
+function toggleExplode() {
+  explodeTarget = explodeTarget === 1 ? 0 : 1;
+  explodeBtn.classList.toggle("active", explodeTarget === 1);
+}
+
+explodeBtn.addEventListener("click", toggleExplode);
+
+// Also toggle when clicking/tapping the model itself — but not when the
+// pointer moved (i.e. the user was dragging to orbit the camera).
+let pointerDownPos = null;
+renderer.domElement.addEventListener("pointerdown", (e) => {
+  pointerDownPos = { x: e.clientX, y: e.clientY };
+});
+renderer.domElement.addEventListener("pointerup", (e) => {
+  if (!pointerDownPos) return;
+  const dx = e.clientX - pointerDownPos.x;
+  const dy = e.clientY - pointerDownPos.y;
+  pointerDownPos = null;
+  if (Math.hypot(dx, dy) < 6) {
+    toggleExplode();
+  }
+});
+
+rotateBtn.addEventListener("click", () => {
+  controls.autoRotate = !controls.autoRotate;
+  rotateBtn.classList.toggle("active", controls.autoRotate);
+});
+
+glowBtn.addEventListener("click", () => {
+  glowVisible = !glowVisible;
+  glowBtn.classList.toggle("active", glowVisible);
+  helixMesh.visible = glowVisible;
+  glowLight1.visible = glowVisible;
+  glowLight2.visible = glowVisible;
+});
+
+shadowBtn.addEventListener("click", () => {
+  shadowVisible = !shadowVisible;
+  shadowBtn.classList.toggle("active", shadowVisible);
+  shadowCatcher.visible = shadowVisible;
+});
+
+/* ---------------- Resize ---------------- */
+function onResize() {
+  const w = holder.clientWidth;
+  const h = holder.clientHeight;
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
+}
+window.addEventListener("resize", onResize);
+
+/* ---------------- Animate ---------------- */
+const clock = new THREE.Clock();
+
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = clock.getDelta();
+  const t = clock.getElapsedTime();
+
+  explodeCurrent += (explodeTarget - explodeCurrent) * Math.min(1, dt * 3.2);
+
+  explodableParts.forEach((part) => {
+    part.position.lerpVectors(
+      part.userData.assembledPos,
+      part.userData.explodedPos,
+      explodeCurrent
+    );
+  });
+
+  helixMesh.rotation.y = t * 0.25;
+  glowLight1.intensity = 3.0 + Math.sin(t * 2.2) * 0.6;
+  glowLight2.intensity = 2.2 + Math.cos(t * 1.7) * 0.5;
+
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+// fade out loading overlay once first frame is ready
+requestAnimationFrame(() => {
+  loadingEl.style.opacity = "0";
+  setTimeout(() => loadingEl.remove(), 450);
+});
+
+animate();
+</script>
+
+</body>
+</html>
